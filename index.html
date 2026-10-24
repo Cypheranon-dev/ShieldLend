@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShieldLend — Cypher Private Lending</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='28' fill='none' stroke='%23f0762a' stroke-width='3'/><path d='M46 18 L32 18 A14 14 0 0 0 32 46 L46 46' fill='none' stroke='%23f0762a' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/><rect x='28' y='12' width='4' height='6' fill='%23f0762a'/><rect x='36' y='12' width='4' height='6' fill='%23f0762a'/><rect x='28' y='46' width='4' height='6' fill='%23f0762a'/><rect x='36' y='46' width='4' height='6' fill='%23f0762a'/></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body { background: #05070d; color: #e8e6e1; font-family: system-ui, sans-serif; }
+    .glass { background: rgba(8, 10, 18, 0.92); backdrop-filter: blur(20px); border: 1px solid rgba(240, 118, 42, 0.35); box-shadow: 0 0 40px rgba(240,118,42,0.08); }
+    .accent { color: #f0762a; }
+    .btn-primary { background: linear-gradient(135deg, #f0762a, #ff8a3d); color: #05070d; box-shadow: 0 4px 20px rgba(240,118,42,0.4); }
+    .btn-primary:hover { background: #ff8a3d; box-shadow: 0 6px 28px rgba(240,118,42,0.55); }
+    .pair-card { background: rgba(20, 24, 36, 0.7); border: 1px solid rgba(240, 118, 42, 0.25); }
+    .private-badge { background: rgba(240, 118, 42, 0.15); color: #f0762a; border: 1px solid rgba(240,118,42,0.4); }
+    select, input { color: #e8e6e1; }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+  <div class="max-w-md mx-auto px-4 py-6">
+    <header class="text-center mb-8">
+      <div class="inline-flex items-center gap-2 mb-1">
+        <svg width="36" height="36" viewBox="0 0 64 64" aria-label="Cypher logo">
+          <circle cx="32" cy="32" r="28" fill="none" stroke="#f0762a" stroke-width="3"/>
+          <path d="M46 18 L32 18 A14 14 0 0 0 32 46 L46 46" fill="none" stroke="#f0762a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="28" y="12" width="4" height="6" fill="#f0762a"/>
+          <rect x="36" y="12" width="4" height="6" fill="#f0762a"/>
+          <rect x="28" y="46" width="4" height="6" fill="#f0762a"/>
+          <rect x="36" y="46" width="4" height="6" fill="#f0762a"/>
+        </svg>
+        <h1 class="text-2xl font-bold">ShieldLend</h1>
+      </div>
+      <p class="text-xs text-gray-500">Private lending for Cypher • Integrated with Mask Wallet & Swap</p>
+    </header>
+
+    <div class="flex gap-2 mb-4 text-xs">
+      <a href="https://cypheranon-dev.github.io/Maskwallet/" class="flex-1 text-center py-2 rounded-lg border border-gray-700 hover:border-accent">Mask Wallet</a>
+      <a href="https://cypheranon-dev.github.io/Maskswap/" class="flex-1 text-center py-2 rounded-lg border border-gray-700 hover:border-accent">Mask Swap</a>
+    </div>
+
+    <!-- Lend -->
+    <div class="glass rounded-2xl p-5 mb-4">
+      <div class="flex justify-between items-center mb-3">
+        <span class="text-sm font-medium">Lend Liquidity</span>
+        <span class="private-badge text-xs px-2 py-1 rounded-full">0.02% / hour</span>
+      </div>
+      <p class="text-xs text-gray-400 mb-3">Supply ETH, BTC, or SOL to markets and earn 0.02% per hour.</p>
+
+      <div class="pair-card rounded-xl p-4 mb-3">
+        <div class="flex justify-between text-xs text-gray-400 mb-1">
+          <span>Asset</span>
+          <span id="lend-balance">Balance: 0.00</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="lend-asset" class="bg-transparent font-semibold outline-none text-lg">
+            <option value="ETH">ETH</option>
+            <option value="BTC">BTC</option>
+            <option value="SOL">SOL</option>
+          </select>
+          <input id="lend-amt" type="number" step="0.0001" placeholder="0.00" class="flex-1 bg-transparent text-right text-xl outline-none" />
+        </div>
+      </div>
+
+      <div class="text-xs text-gray-500 mb-4 flex justify-between">
+        <span>Hourly yield</span>
+        <span id="lend-yield">0.00</span>
+      </div>
+
+      <button id="lend-btn" class="btn-primary w-full py-3 rounded-xl font-semibold">Supply & Earn</button>
+    </div>
+
+    <!-- Borrow -->
+    <div class="glass rounded-2xl p-5 mb-4">
+      <div class="flex justify-between items-center mb-3">
+        <span class="text-sm font-medium">Borrow CYP</span>
+        <span class="private-badge text-xs px-2 py-1 rounded-full">0.015% rebate</span>
+      </div>
+      <p class="text-xs text-gray-400 mb-3">Collateralize BTC, SOL, or ETH and borrow Cypher at a rebated 0.015% rate.</p>
+
+      <div class="pair-card rounded-xl p-4 mb-3">
+        <div class="flex justify-between text-xs text-gray-400 mb-1">
+          <span>Collateral</span>
+          <span id="borrow-collat-bal">Available: 0.00</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="borrow-collat" class="bg-transparent font-semibold outline-none text-lg">
+            <option value="ETH">ETH</option>
+            <option value="BTC">BTC</option>
+            <option value="SOL">SOL</option>
+          </select>
+          <input id="borrow-collat-amt" type="number" step="0.0001" placeholder="0.00" class="flex-1 bg-transparent text-right text-xl outline-none" />
+        </div>
+      </div>
+
+      <div class="pair-card rounded-xl p-4 mb-3">
+        <div class="flex justify-between text-xs text-gray-400 mb-1">
+          <span>Borrow CYP</span>
+          <span>Rate: 0.015%</span>
+        </div>
+        <div class="text-right text-xl" id="borrow-cyp">0.00</div>
+      </div>
+
+      <button id="borrow-btn" class="btn-primary w-full py-3 rounded-xl font-semibold">Borrow CYP</button>
+    </div>
+
+    <div class="glass rounded-2xl p-5">
+      <h3 class="text-sm font-medium mb-3">Positions</h3>
+      <div id="positions" class="space-y-2 text-xs text-gray-400">
+        <p class="text-center py-4">No positions yet</p>
+      </div>
+    </div>
+
+    <footer class="text-center text-[10px] text-gray-600 mt-6">
+      Cypher protocol foundation • Private lending • Demo
+    </footer>
+  </div>
+
+  <script>
+    const prices = { ETH: 2500, BTC: 65000, SOL: 150, CYP: 0.25 };
+    const balances = { ETH: 2.5, BTC: 0.05, SOL: 25, CYP: 1000 };
+    const positions = [];
+
+    function updateLend() {
+      const asset = document.getElementById('lend-asset').value;
+      const amt = parseFloat(document.getElementById('lend-amt').value) || 0;
+      document.getElementById('lend-balance').textContent = `Balance: ${balances[asset].toFixed(4)}`;
+      document.getElementById('lend-yield').textContent = (amt * 0.0002).toFixed(6) + ' ' + asset + '/hr';
+    }
+
+    function updateBorrow() {
+      const collat = document.getElementById('borrow-collat').value;
+      const amt = parseFloat(document.getElementById('borrow-collat-amt').value) || 0;
+      document.getElementById('borrow-collat-bal').textContent = `Available: ${balances[collat].toFixed(4)}`;
+      const usd = amt * prices[collat];
+      const cyp = usd / prices.CYP;
+      document.getElementById('borrow-cyp').textContent = cyp.toFixed(2);
+    }
+
+    document.getElementById('lend-asset').onchange = updateLend;
+    document.getElementById('lend-amt').oninput = updateLend;
+    document.getElementById('borrow-collat').onchange = updateBorrow;
+    document.getElementById('borrow-collat-amt').oninput = updateBorrow;
+
+    document.getElementById('lend-btn').onclick = () => {
+      const asset = document.getElementById('lend-asset').value;
+      const amt = parseFloat(document.getElementById('lend-amt').value);
+      if (!amt || amt <= 0 || balances[asset] < amt) return alert('Invalid amount');
+      balances[asset] -= amt;
+      positions.push({ type: 'lend', asset, amt, rate: '0.02%/hr' });
+      renderPositions();
+      updateLend();
+      alert(`Supplied ${amt} ${asset} — earning 0.02%/hour`);
+    };
+
+    document.getElementById('borrow-btn').onclick = () => {
+      const collat = document.getElementById('borrow-collat').value;
+      const amt = parseFloat(document.getElementById('borrow-collat-amt').value);
+      if (!amt || amt <= 0 || balances[collat] < amt) return alert('Invalid collateral');
+      const cyp = parseFloat(document.getElementById('borrow-cyp').textContent);
+      balances[collat] -= amt;
+      balances.CYP += cyp;
+      positions.push({ type: 'borrow', collat, amt, cyp, rate: '0.015%' });
+      renderPositions();
+      updateBorrow();
+      alert(`Borrowed ${cyp.toFixed(2)} CYP against ${amt} ${collat}`);
+    };
+
+    function renderPositions() {
+      const el = document.getElementById('positions');
+      if (!positions.length) { el.innerHTML = '<p class="text-center py-4">No positions yet</p>'; return; }
+      el.innerHTML = positions.map(p =>
+        p.type === 'lend'
+          ? `<div class="flex justify-between py-1 border-b border-gray-800"><span>Lend ${p.amt} ${p.asset}</span><span class="text-green-400">${p.rate}</span></div>`
+          : `<div class="flex justify-between py-1 border-b border-gray-800"><span>Borrow ${p.cyp.toFixed(2)} CYP</span><span class="text-amber-400">${p.rate}</span></div>`
+      ).join('');
+    }
+
+    updateLend();
+    updateBorrow();
+  </script>
+</body>
+</html>
