@@ -7,6 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='28' fill='none' stroke='%23f0762a' stroke-width='3'/><path d='M46 18 L32 18 A14 14 0 0 0 32 46 L46 46' fill='none' stroke='%23f0762a' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/><rect x='28' y='12' width='4' height='6' fill='%23f0762a'/><rect x='36' y='12' width='4' height='6' fill='%23f0762a'/><rect x='28' y='46' width='4' height='6' fill='%23f0762a'/><rect x='36' y='46' width='4' height='6' fill='%23f0762a'/></svg>" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { background: #05070d; color: #e8e6e1; font-family: system-ui, sans-serif; }
     .glass { background: rgba(8, 10, 18, 0.92); backdrop-filter: blur(20px); border: 1px solid rgba(240, 118, 42, 0.35); box-shadow: 0 0 40px rgba(240,118,42,0.08); }
@@ -16,11 +17,12 @@
     .pair-card { background: rgba(20, 24, 36, 0.7); border: 1px solid rgba(240, 118, 42, 0.25); }
     .private-badge { background: rgba(240, 118, 42, 0.15); color: #f0762a; border: 1px solid rgba(240,118,42,0.4); }
     select, input { color: #e8e6e1; }
+    canvas { max-height: 180px; }
   </style>
 </head>
 <body class="min-h-screen antialiased">
   <div class="max-w-md mx-auto px-4 py-6">
-    <header class="text-center mb-8">
+    <header class="text-center mb-6">
       <div class="inline-flex items-center gap-2 mb-1">
         <svg width="36" height="36" viewBox="0 0 64 64" aria-label="Cypher logo">
           <circle cx="32" cy="32" r="28" fill="none" stroke="#f0762a" stroke-width="3"/>
@@ -32,7 +34,7 @@
         </svg>
         <h1 class="text-2xl font-bold">ShieldLend</h1>
       </div>
-      <p class="text-xs text-gray-500">Private lending for Cypher • Integrated with Mask Wallet & Swap</p>
+      <p class="text-xs text-gray-500">Private lending & staking for Cypher • Live charts</p>
     </header>
 
     <div class="flex gap-2 mb-4 text-xs">
@@ -40,13 +42,44 @@
       <a href="https://cypheranon-dev.github.io/Maskswap/" class="flex-1 text-center py-2 rounded-lg border border-gray-700 hover:border-accent">Mask Swap</a>
     </div>
 
-    <!-- Lend -->
+    <!-- Test Balances -->
+    <div class="glass rounded-2xl p-4 mb-4">
+      <div class="text-xs text-gray-500 mb-2">Test Balances (demo)</div>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <div>ETH: <span id="bal-eth" class="accent">2.50</span></div>
+        <div>BTC: <span id="bal-btc" class="accent">0.0500</span></div>
+        <div>SOL: <span id="bal-sol" class="accent">25.00</span></div>
+        <div>CYP: <span id="bal-cyp" class="accent">1000</span></div>
+      </div>
+    </div>
+
+    <!-- Price Chart -->
+    <div class="glass rounded-2xl p-4 mb-4">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sm font-medium">Live Prices</span>
+        <select id="chart-asset" class="bg-transparent text-xs outline-none">
+          <option value="ETH">ETH</option>
+          <option value="BTC">BTC</option>
+          <option value="SOL">SOL</option>
+          <option value="CYP">CYP</option>
+        </select>
+      </div>
+      <canvas id="priceChart"></canvas>
+    </div>
+
+    <!-- Liquidity Chart -->
+    <div class="glass rounded-2xl p-4 mb-4">
+      <div class="text-sm font-medium mb-2">Market Liquidity</div>
+      <canvas id="liqChart"></canvas>
+    </div>
+
+    <!-- Shielded Lend -->
     <div class="glass rounded-2xl p-5 mb-4">
       <div class="flex justify-between items-center mb-3">
-        <span class="text-sm font-medium">Lend Liquidity</span>
-        <span class="private-badge text-xs px-2 py-1 rounded-full">0.02% / hour</span>
+        <span class="text-sm font-medium">Shielded Lend</span>
+        <span class="private-badge text-xs px-2 py-1 rounded-full">0.02% / hour • Shielded</span>
       </div>
-      <p class="text-xs text-gray-400 mb-3">Supply ETH, BTC, or SOL to markets and earn 0.02% per hour.</p>
+      <p class="text-xs text-gray-400 mb-3">Supply liquidity privately. Earnings accrue in a shielded pool.</p>
 
       <div class="pair-card rounded-xl p-4 mb-3">
         <div class="flex justify-between text-xs text-gray-400 mb-1">
@@ -64,20 +97,20 @@
       </div>
 
       <div class="text-xs text-gray-500 mb-4 flex justify-between">
-        <span>Hourly yield</span>
+        <span>Hourly yield (shielded)</span>
         <span id="lend-yield">0.00</span>
       </div>
 
-      <button id="lend-btn" class="btn-primary w-full py-3 rounded-xl font-semibold">Supply & Earn</button>
+      <button id="lend-btn" class="btn-primary w-full py-3 rounded-xl font-semibold">Supply Shielded</button>
     </div>
 
     <!-- Borrow -->
     <div class="glass rounded-2xl p-5 mb-4">
       <div class="flex justify-between items-center mb-3">
-        <span class="text-sm font-medium">Borrow CYP</span>
+        <span class="text-sm font-medium">Borrow CYP (Shielded)</span>
         <span class="private-badge text-xs px-2 py-1 rounded-full">0.015% rebate</span>
       </div>
-      <p class="text-xs text-gray-400 mb-3">Collateralize BTC, SOL, or ETH and borrow Cypher at a rebated 0.015% rate.</p>
+      <p class="text-xs text-gray-400 mb-3">Collateralize privately and borrow Cypher at rebated rate.</p>
 
       <div class="pair-card rounded-xl p-4 mb-3">
         <div class="flex justify-between text-xs text-gray-400 mb-1">
@@ -102,18 +135,42 @@
         <div class="text-right text-xl" id="borrow-cyp">0.00</div>
       </div>
 
-      <button id="borrow-btn" class="btn-primary w-full py-3 rounded-xl font-semibold">Borrow CYP</button>
+      <button id="borrow-btn" class="btn-primary w-full py-3 rounded-xl font-semibold">Borrow Shielded</button>
+    </div>
+
+    <!-- Staking -->
+    <div class="glass rounded-2xl p-5 mb-4">
+      <div class="flex justify-between items-center mb-3">
+        <span class="text-sm font-medium">Stake CYP</span>
+        <span class="private-badge text-xs px-2 py-1 rounded-full">0.015% / hour</span>
+      </div>
+      <p class="text-xs text-gray-400 mb-3">Stake Cypher for additional shielded yield.</p>
+
+      <div class="pair-card rounded-xl p-4 mb-3">
+        <div class="flex justify-between text-xs text-gray-400 mb-1">
+          <span>Amount CYP</span>
+          <span id="stake-bal">Balance: 1000</span>
+        </div>
+        <input id="stake-amt" type="number" step="1" placeholder="0" class="w-full bg-transparent text-right text-xl outline-none" />
+      </div>
+
+      <div class="text-xs text-gray-500 mb-4 flex justify-between">
+        <span>Hourly stake yield</span>
+        <span id="stake-yield">0.00 CYP/hr</span>
+      </div>
+
+      <button id="stake-btn" class="btn-primary w-full py-3 rounded-xl font-semibold">Stake Shielded</button>
     </div>
 
     <div class="glass rounded-2xl p-5">
-      <h3 class="text-sm font-medium mb-3">Positions</h3>
+      <h3 class="text-sm font-medium mb-3">Positions (Shielded)</h3>
       <div id="positions" class="space-y-2 text-xs text-gray-400">
         <p class="text-center py-4">No positions yet</p>
       </div>
     </div>
 
     <footer class="text-center text-[10px] text-gray-600 mt-6">
-      Cypher protocol foundation • Private lending • Demo
+      Cypher protocol foundation • Shielded lending & staking • Demo charts
     </footer>
   </div>
 
@@ -121,6 +178,88 @@
     const prices = { ETH: 2500, BTC: 65000, SOL: 150, CYP: 0.25 };
     const balances = { ETH: 2.5, BTC: 0.05, SOL: 25, CYP: 1000 };
     const positions = [];
+
+    // Mock historical data for charts
+    function generateHistory(base, points = 24) {
+      const data = [];
+      let p = base;
+      for (let i = 0; i < points; i++) {
+        p *= (1 + (Math.random() - 0.48) * 0.02);
+        data.push(p);
+      }
+      return data;
+    }
+
+    const histories = {
+      ETH: generateHistory(2500),
+      BTC: generateHistory(65000),
+      SOL: generateHistory(150),
+      CYP: generateHistory(0.25)
+    };
+
+    const labels = Array.from({length: 24}, (_, i) => `${23 - i}h`);
+
+    // Price Chart
+    const priceCtx = document.getElementById('priceChart').getContext('2d');
+    const priceChart = new Chart(priceCtx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Price USD',
+          data: histories.ETH,
+          borderColor: '#f0762a',
+          backgroundColor: 'rgba(240, 118, 42, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false },
+          y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+      }
+    });
+
+    document.getElementById('chart-asset').onchange = function() {
+      const asset = this.value;
+      priceChart.data.datasets[0].data = histories[asset];
+      priceChart.update();
+    };
+
+    // Liquidity Chart
+    const liqCtx = document.getElementById('liqChart').getContext('2d');
+    new Chart(liqCtx, {
+      type: 'bar',
+      data: {
+        labels: ['ETH', 'BTC', 'SOL', 'CYP'],
+        datasets: [{
+          label: 'Liquidity (USD)',
+          data: [1250000, 3250000, 375000, 250000],
+          backgroundColor: ['#f0762a', '#ff8a3d', '#8fd9b6', '#1c3d32'],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#9ca3af' }, grid: { display: false } },
+          y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+      }
+    });
+
+    function updateBals() {
+      document.getElementById('bal-eth').textContent = balances.ETH.toFixed(4);
+      document.getElementById('bal-btc').textContent = balances.BTC.toFixed(4);
+      document.getElementById('bal-sol').textContent = balances.SOL.toFixed(2);
+      document.getElementById('bal-cyp').textContent = Math.floor(balances.CYP);
+    }
 
     function updateLend() {
       const asset = document.getElementById('lend-asset').value;
@@ -138,20 +277,28 @@
       document.getElementById('borrow-cyp').textContent = cyp.toFixed(2);
     }
 
+    function updateStake() {
+      const amt = parseFloat(document.getElementById('stake-amt').value) || 0;
+      document.getElementById('stake-bal').textContent = `Balance: ${Math.floor(balances.CYP)}`;
+      document.getElementById('stake-yield').textContent = (amt * 0.00015).toFixed(4) + ' CYP/hr';
+    }
+
     document.getElementById('lend-asset').onchange = updateLend;
     document.getElementById('lend-amt').oninput = updateLend;
     document.getElementById('borrow-collat').onchange = updateBorrow;
     document.getElementById('borrow-collat-amt').oninput = updateBorrow;
+    document.getElementById('stake-amt').oninput = updateStake;
 
     document.getElementById('lend-btn').onclick = () => {
       const asset = document.getElementById('lend-asset').value;
       const amt = parseFloat(document.getElementById('lend-amt').value);
       if (!amt || amt <= 0 || balances[asset] < amt) return alert('Invalid amount');
       balances[asset] -= amt;
-      positions.push({ type: 'lend', asset, amt, rate: '0.02%/hr' });
+      positions.push({ type: 'lend', asset, amt, rate: '0.02%/hr shielded' });
       renderPositions();
       updateLend();
-      alert(`Supplied ${amt} ${asset} — earning 0.02%/hour`);
+      updateBals();
+      alert(`Shielded supply of ${amt} ${asset} — earning 0.02%/hour privately`);
     };
 
     document.getElementById('borrow-btn').onclick = () => {
@@ -161,24 +308,38 @@
       const cyp = parseFloat(document.getElementById('borrow-cyp').textContent);
       balances[collat] -= amt;
       balances.CYP += cyp;
-      positions.push({ type: 'borrow', collat, amt, cyp, rate: '0.015%' });
+      positions.push({ type: 'borrow', collat, amt, cyp, rate: '0.015% shielded' });
       renderPositions();
       updateBorrow();
-      alert(`Borrowed ${cyp.toFixed(2)} CYP against ${amt} ${collat}`);
+      updateBals();
+      alert(`Shielded borrow of ${cyp.toFixed(2)} CYP against ${amt} ${collat}`);
+    };
+
+    document.getElementById('stake-btn').onclick = () => {
+      const amt = parseFloat(document.getElementById('stake-amt').value);
+      if (!amt || amt <= 0 || balances.CYP < amt) return alert('Invalid stake amount');
+      balances.CYP -= amt;
+      positions.push({ type: 'stake', amt, rate: '0.015%/hr' });
+      renderPositions();
+      updateStake();
+      updateBals();
+      alert(`Staked ${amt} CYP — earning 0.015%/hour shielded`);
     };
 
     function renderPositions() {
       const el = document.getElementById('positions');
       if (!positions.length) { el.innerHTML = '<p class="text-center py-4">No positions yet</p>'; return; }
-      el.innerHTML = positions.map(p =>
-        p.type === 'lend'
-          ? `<div class="flex justify-between py-1 border-b border-gray-800"><span>Lend ${p.amt} ${p.asset}</span><span class="text-green-400">${p.rate}</span></div>`
-          : `<div class="flex justify-between py-1 border-b border-gray-800"><span>Borrow ${p.cyp.toFixed(2)} CYP</span><span class="text-amber-400">${p.rate}</span></div>`
-      ).join('');
+      el.innerHTML = positions.map(p => {
+        if (p.type === 'lend') return `<div class="flex justify-between py-1 border-b border-gray-800"><span>Shielded Lend ${p.amt} ${p.asset}</span><span class="text-green-400">${p.rate}</span></div>`;
+        if (p.type === 'borrow') return `<div class="flex justify-between py-1 border-b border-gray-800"><span>Shielded Borrow ${p.cyp.toFixed(2)} CYP</span><span class="text-amber-400">${p.rate}</span></div>`;
+        return `<div class="flex justify-between py-1 border-b border-gray-800"><span>Stake ${p.amt} CYP</span><span class="text-green-400">${p.rate}</span></div>`;
+      }).join('');
     }
 
     updateLend();
     updateBorrow();
+    updateStake();
+    updateBals();
   </script>
 </body>
 </html>
