@@ -112,7 +112,7 @@
         <span class="text-sm font-medium">Borrow CYP (Shielded)</span>
         <span class="private-badge text-xs px-2 py-1 rounded-full">0.015% rebate</span>
       </div>
-      <p class="text-xs text-gray-400 mb-3">Collateralize privately and borrow Cypher at rebated rate.</p>
+      <p class="text-xs text-gray-400 mb-3">Collateralize privately and borrow Cypher at rebated rate. Fair value $0.25.</p>
 
       <div class="pair-card rounded-xl p-4 mb-3">
         <div class="flex justify-between text-xs text-gray-400 mb-1">
@@ -132,7 +132,7 @@
       <div class="pair-card rounded-xl p-4 mb-3">
         <div class="flex justify-between text-xs text-gray-400 mb-1">
           <span>Borrow CYP</span>
-          <span>Rate: 0.015%</span>
+          <span>Fair $0.25</span>
         </div>
         <div class="text-right text-xl" id="borrow-cyp">0.00</div>
       </div>
@@ -172,7 +172,7 @@
     </div>
 
     <footer class="text-center text-[10px] text-gray-600 mt-6">
-      Cypher protocol foundation • Shielded lending & staking • Live Binance charts
+      Cypher protocol foundation • Seed $0.0025 • Fair value $0.25 (1 ETH = 10,000 CYP)
     </footer>
   </div>
 
@@ -198,11 +198,28 @@
       return data;
     }
 
+    function generateCypCandles(count = 40) {
+      const data = [];
+      let time = Math.floor(Date.now() / 1000) - count * 3600;
+      let price = 0.0025;
+      for (let i = 0; i < count; i++) {
+        const target = 0.0025 + (0.25 - 0.0025) * (i / (count - 1));
+        const open = price;
+        const close = +(target * (1 + (Math.random() - 0.5) * 0.04)).toFixed(6);
+        const high = +(Math.max(open, close) * (1 + Math.random() * 0.02)).toFixed(6);
+        const low = +(Math.min(open, close) * (1 - Math.random() * 0.02)).toFixed(6);
+        data.push({ time, open, high, low, close });
+        price = close;
+        time += 3600;
+      }
+      return data;
+    }
+
     async function loadCandles(asset) {
       const status = document.getElementById('chart-status');
       if (asset === 'CYP') {
-        status.textContent = '(demo — CYP not listed)';
-        return generateCandles(0.25);
+        status.textContent = '(fair $0.25 • seed $0.0025)';
+        return generateCypCandles();
       }
       const symbol = symbols[asset];
       try {
@@ -254,7 +271,6 @@
       updateChart(this.value);
     };
 
-    // Liquidity Chart (Chart.js)
     const liqCtx = document.getElementById('liqChart').getContext('2d');
     new Chart(liqCtx, {
       type: 'bar',
