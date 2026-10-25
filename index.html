@@ -36,7 +36,7 @@
         </svg>
         <h1 class="text-2xl font-bold">ShieldLend</h1>
       </div>
-      <p class="text-xs text-gray-500">Private lending & staking for Cypher • Candlestick charts</p>
+      <p class="text-xs text-gray-500">Private lending & staking for Cypher • Live charts</p>
     </header>
 
     <div class="flex gap-2 mb-4 text-xs">
@@ -58,7 +58,7 @@
     <!-- Candlestick Chart -->
     <div class="glass rounded-2xl p-4 mb-4">
       <div class="flex justify-between items-center mb-2">
-        <span class="text-sm font-medium">Candlestick Chart</span>
+        <span class="text-sm font-medium">Candlestick Chart <span class="text-[10px] text-gray-500" id="chart-status">(live)</span></span>
         <select id="candle-asset" class="bg-transparent text-xs outline-none">
           <option value="CYP">CYP</option>
           <option value="ETH">ETH</option>
@@ -172,7 +172,7 @@
     </div>
 
     <footer class="text-center text-[10px] text-gray-600 mt-6">
-      Cypher protocol foundation • Shielded lending & staking • Demo charts
+      Cypher protocol foundation • Shielded lending & staking • Live Binance charts
     </footer>
   </div>
 
@@ -180,8 +180,8 @@
     const prices = { ETH: 2500, BTC: 65000, SOL: 150, CYP: 0.25 };
     const balances = { ETH: 2.5, BTC: 0.05, SOL: 25, CYP: 1000 };
     const positions = [];
+    const symbols = { ETH: 'ETHUSDT', BTC: 'BTCUSDT', SOL: 'SOLUSDT' };
 
-    // Candlestick data generator
     function generateCandles(base, count = 40) {
       const data = [];
       let time = Math.floor(Date.now() / 1000) - count * 3600;
@@ -198,14 +198,33 @@
       return data;
     }
 
-    const candleHistories = {
-      CYP: generateCandles(0.25),
-      ETH: generateCandles(2500),
-      BTC: generateCandles(65000),
-      SOL: generateCandles(150)
-    };
+    async function loadCandles(asset) {
+      const status = document.getElementById('chart-status');
+      if (asset === 'CYP') {
+        status.textContent = '(demo — CYP not listed)';
+        return generateCandles(0.25);
+      }
+      const symbol = symbols[asset];
+      try {
+        status.textContent = '(loading...)';
+        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=40`);
+        if (!res.ok) throw new Error('API error');
+        const klines = await res.json();
+        status.textContent = '(live Binance)';
+        return klines.map(k => ({
+          time: Math.floor(k[0] / 1000),
+          open: parseFloat(k[1]),
+          high: parseFloat(k[2]),
+          low: parseFloat(k[3]),
+          close: parseFloat(k[4])
+        }));
+      } catch (e) {
+        console.warn('Binance failed', e);
+        status.textContent = '(demo fallback)';
+        return generateCandles(prices[asset] || 100);
+      }
+    }
 
-    // Lightweight Charts candlestick
     const chart = LightweightCharts.createChart(document.getElementById('candle-chart'), {
       height: 220,
       layout: { background: { color: '#080a12' }, textColor: '#e8e6e1' },
@@ -223,12 +242,16 @@
       wickDownColor: '#ef5350'
     });
 
-    candleSeries.setData(candleHistories.CYP);
-    chart.timeScale().fitContent();
+    async function updateChart(asset) {
+      const data = await loadCandles(asset);
+      candleSeries.setData(data);
+      chart.timeScale().fitContent();
+    }
+
+    updateChart('CYP');
 
     document.getElementById('candle-asset').onchange = function() {
-      candleSeries.setData(candleHistories[this.value]);
-      chart.timeScale().fitContent();
+      updateChart(this.value);
     };
 
     // Liquidity Chart (Chart.js)
