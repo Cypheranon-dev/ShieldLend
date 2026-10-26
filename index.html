@@ -16,6 +16,7 @@
     .pair-card { background: rgba(20, 24, 36, 0.7); border: 1px solid rgba(240, 118, 42, 0.25); }
     .private-badge { background: rgba(240, 118, 42, 0.15); color: #f0762a; border: 1px solid rgba(240,118,42,0.4); }
     select, input { color: #e8e6e1; }
+    .exit-btn { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.4); }
   </style>
 </head>
 <body class="min-h-screen antialiased">
@@ -38,6 +39,15 @@
     <div class="flex gap-2 mb-4 text-xs">
       <a href="https://cypheranon-dev.github.io/Maskwallet/" class="flex-1 text-center py-2 rounded-lg border border-gray-700 hover:border-accent">Mask Wallet</a>
       <a href="https://cypheranon-dev.github.io/Maskswap/" class="flex-1 text-center py-2 rounded-lg border border-gray-700 hover:border-accent">Mask Swap</a>
+    </div>
+
+    <!-- Live Prices -->
+    <div class="glass rounded-2xl p-4 mb-4">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sm font-medium">Live Prices</span>
+        <span class="text-[10px] text-gray-500" id="price-status">loading...</span>
+      </div>
+      <div id="price-list" class="grid grid-cols-2 gap-2 text-sm"></div>
     </div>
 
     <!-- Test Balances -->
@@ -158,8 +168,17 @@
     const positions = [];
     const cgIds = { ETH: 'ethereum', BTC: 'bitcoin', SOL: 'solana' };
 
+    function renderPrices() {
+      const el = document.getElementById('price-list');
+      el.innerHTML = Object.entries(prices).map(([k, v]) =>
+        `<div class="flex justify-between"><span>${k}</span><span class="accent">$${Number(v).toLocaleString(undefined, {maximumFractionDigits: k === 'CYP' ? 4 : 0})}</span></div>`
+      ).join('');
+    }
+
     async function fetchRecentPrices() {
+      const status = document.getElementById('price-status');
       try {
+        status.textContent = 'loading...';
         const ids = Object.values(cgIds).join(',');
         const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
         if (!res.ok) throw new Error('price fail');
@@ -167,7 +186,11 @@
         if (data.ethereum?.usd) prices.ETH = data.ethereum.usd;
         if (data.bitcoin?.usd) prices.BTC = data.bitcoin.usd;
         if (data.solana?.usd) prices.SOL = data.solana.usd;
+        status.textContent = 'live';
+        renderPrices();
       } catch (e) {
+        status.textContent = 'demo';
+        renderPrices();
         console.warn('Price fetch failed', e);
       }
     }
@@ -244,13 +267,40 @@
       alert(`Staked ${amt} CYP — earning 0.015%/hour shielded`);
     };
 
+    function exitPosition(index) {
+      const p = positions[index];
+      if (!p) return;
+      if (p.type === 'lend') {
+        balances[p.asset] += p.amt;
+        alert(`Exited shielded lend of ${p.amt} ${p.asset}`);
+      } else if (p.type === 'borrow') {
+        balances[p.collat] += p.amt;
+        balances.CYP -= p.cyp;
+        alert(`Exited shielded borrow of ${p.cyp.toFixed(2)} CYP`);
+      } else if (p.type === 'stake') {
+        balances.CYP += p.amt;
+        alert(`Exited stake of ${p.amt} CYP`);
+      }
+      positions.splice(index, 1);
+      renderPositions();
+      updateBals();
+      updateLend();
+      updateBorrow();
+      updateStake();
+    }
+
     function renderPositions() {
       const el = document.getElementById('positions');
       if (!positions.length) { el.innerHTML = '<p class="text-center py-4">No positions yet</p>'; return; }
-      el.innerHTML = positions.map(p => {
-        if (p.type === 'lend') return `<div class="flex justify-between py-1 border-b border-gray-800"><span>Shielded Lend ${p.amt} ${p.asset}</span><span class="text-green-400">${p.rate}</span></div>`;
-        if (p.type === 'borrow') return `<div class="flex justify-between py-1 border-b border-gray-800"><span>Shielded Borrow ${p.cyp.toFixed(2)} CYP</span><span class="text-amber-400">${p.rate}</span></div>`;
-        return `<div class="flex justify-between py-1 border-b border-gray-800"><span>Stake ${p.amt} CYP</span><span class="text-green-400">${p.rate}</span></div>`;
+      el.innerHTML = positions.map((p, i) => {
+        let label = '';
+        if (p.type === 'lend') label = `Shielded Lend ${p.amt} ${p.asset}`;
+        else if (p.type === 'borrow') label = `Shielded Borrow ${p.cyp.toFixed(2)} CYP`;
+        else label = `Stake ${p.amt} CYP`;
+        return `<div class="flex justify-between items-center py-2 border-b border-gray-800">
+          <span>${label} <span class="text-green-400 text-[10px]">${p.rate}</span></span>
+          <button onclick="exitPosition(${i})" class="exit-btn text-[10px] px-2 py-1 rounded">Exit</button>
+        </div>`;
       }).join('');
     }
 
@@ -259,6 +309,7 @@
     updateBorrow();
     updateStake();
     updateBals();
+    renderPrices();
   </script>
 </body>
 </html>
