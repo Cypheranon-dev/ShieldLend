@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https://api.coingecko.com https://api.binance.com https://corsproxy.io;">
   <title>ShieldLend — Cypher Private Lending</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='28' fill='none' stroke='%23f0762a' stroke-width='3'/><path d='M46 18 L32 18 A14 14 0 0 0 32 46 L46 46' fill='none' stroke='%23f0762a' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/><rect x='28' y='12' width='4' height='6' fill='%23f0762a'/><rect x='36' y='12' width='4' height='6' fill='%23f0762a'/><rect x='28' y='46' width='4' height='6' fill='%23f0762a'/><rect x='36' y='46' width='4' height='6' fill='%23f0762a'/></svg>" />
   <script src="https://cdn.tailwindcss.com"></script>
@@ -58,7 +59,7 @@
     <!-- Candlestick Chart -->
     <div class="glass rounded-2xl p-4 mb-4">
       <div class="flex justify-between items-center mb-2">
-        <span class="text-sm font-medium">Candlestick Chart <span class="text-[10px] text-gray-500" id="chart-status">(live)</span></span>
+        <span class="text-sm font-medium">Candlestick Chart <span class="text-[10px] text-gray-500" id="chart-status">(loading...)</span></span>
         <select id="candle-asset" class="bg-transparent text-xs outline-none">
           <option value="CYP">CYP</option>
           <option value="ETH">ETH</option>
@@ -132,7 +133,7 @@
       <div class="pair-card rounded-xl p-4 mb-3">
         <div class="flex justify-between text-xs text-gray-400 mb-1">
           <span>Borrow CYP</span>
-          <span>Fair $0.25</span>
+          <span>$0.25</span>
         </div>
         <div class="text-right text-xl" id="borrow-cyp">0.00</div>
       </div>
@@ -172,15 +173,15 @@
     </div>
 
     <footer class="text-center text-[10px] text-gray-600 mt-6">
-      Cypher protocol foundation • Seed $0.0025 • Fair value $0.25 (1 ETH = 10,000 CYP)
+      Cypher protocol foundation • Each CYP $0.25 • New wallets +1000 CYP
     </footer>
   </div>
 
   <script>
-    const prices = { ETH: 2500, BTC: 65000, SOL: 150, CYP: 0.25 };
+    let prices = { ETH: 2500, BTC: 65000, SOL: 150, CYP: 0.25 };
     const balances = { ETH: 2.5, BTC: 0.05, SOL: 25, CYP: 1000 };
     const positions = [];
-    const symbols = { ETH: 'ETHUSDT', BTC: 'BTCUSDT', SOL: 'SOLUSDT' };
+    const cgIds = { ETH: 'ethereum', BTC: 'bitcoin', SOL: 'solana' };
 
     function generateCandles(base, count = 40) {
       const data = [];
@@ -201,13 +202,12 @@
     function generateCypCandles(count = 40) {
       const data = [];
       let time = Math.floor(Date.now() / 1000) - count * 3600;
-      let price = 0.0025;
+      let price = 0.25;
       for (let i = 0; i < count; i++) {
-        const target = 0.0025 + (0.25 - 0.0025) * (i / (count - 1));
         const open = price;
-        const close = +(target * (1 + (Math.random() - 0.5) * 0.04)).toFixed(6);
-        const high = +(Math.max(open, close) * (1 + Math.random() * 0.02)).toFixed(6);
-        const low = +(Math.min(open, close) * (1 - Math.random() * 0.02)).toFixed(6);
+        const close = +(open * (1 + (Math.random() - 0.5) * 0.03)).toFixed(6);
+        const high = +(Math.max(open, close) * (1 + Math.random() * 0.015)).toFixed(6);
+        const low = +(Math.min(open, close) * (1 - Math.random() * 0.015)).toFixed(6);
         data.push({ time, open, high, low, close });
         price = close;
         time += 3600;
@@ -215,28 +215,59 @@
       return data;
     }
 
+    async function fetchRecentPrices() {
+      try {
+        const ids = Object.values(cgIds).join(',');
+        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
+        if (!res.ok) throw new Error('price fail');
+        const data = await res.json();
+        if (data.ethereum?.usd) prices.ETH = data.ethereum.usd;
+        if (data.bitcoin?.usd) prices.BTC = data.bitcoin.usd;
+        if (data.solana?.usd) prices.SOL = data.solana.usd;
+      } catch (e) {
+        console.warn('Price fetch failed', e);
+      }
+    }
+
     async function loadCandles(asset) {
       const status = document.getElementById('chart-status');
       if (asset === 'CYP') {
-        status.textContent = '(fair $0.25 • seed $0.0025)';
+        status.textContent = '($0.25)';
         return generateCypCandles();
       }
-      const symbol = symbols[asset];
+      const id = cgIds[asset];
       try {
         status.textContent = '(loading...)';
-        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=40`);
-        if (!res.ok) throw new Error('API error');
-        const klines = await res.json();
-        status.textContent = '(live Binance)';
-        return klines.map(k => ({
+        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=1`);
+        if (!res.ok) throw new Error('CG fail');
+        const raw = await res.json();
+        if (!Array.isArray(raw) || raw.length === 0) throw new Error('empty');
+        status.textContent = '(live CoinGecko)';
+        return raw.map(k => ({
           time: Math.floor(k[0] / 1000),
-          open: parseFloat(k[1]),
-          high: parseFloat(k[2]),
-          low: parseFloat(k[3]),
-          close: parseFloat(k[4])
+          open: k[1],
+          high: k[2],
+          low: k[3],
+          close: k[4]
         }));
       } catch (e) {
-        console.warn('Binance failed', e);
+        console.warn('CoinGecko OHLC failed', e);
+        try {
+          const symbol = asset + 'USDT';
+          const proxy = 'https://corsproxy.io/?';
+          const res2 = await fetch(proxy + encodeURIComponent(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=40`));
+          if (res2.ok) {
+            const klines = await res2.json();
+            status.textContent = '(live Binance)';
+            return klines.map(k => ({
+              time: Math.floor(k[0] / 1000),
+              open: parseFloat(k[1]),
+              high: parseFloat(k[2]),
+              low: parseFloat(k[3]),
+              close: parseFloat(k[4])
+            }));
+          }
+        } catch (e2) {}
         status.textContent = '(demo fallback)';
         return generateCandles(prices[asset] || 100);
       }
@@ -265,7 +296,7 @@
       chart.timeScale().fitContent();
     }
 
-    updateChart('CYP');
+    fetchRecentPrices().then(() => updateChart('CYP'));
 
     document.getElementById('candle-asset').onchange = function() {
       updateChart(this.value);
