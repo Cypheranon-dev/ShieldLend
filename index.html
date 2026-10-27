@@ -7,132 +7,105 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='28' fill='none' stroke='%23f0762a' stroke-width='3'/><path d='M46 18 L32 18 A14 14 0 0 0 32 46 L46 46' fill='none' stroke='%23f0762a' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/><rect x='28' y='12' width='4' height='6' fill='%23f0762a'/><rect x='36' y='12' width='4' height='6' fill='%23f0762a'/><rect x='28' y='46' width='4' height='6' fill='%23f0762a'/><rect x='36' y='46' width='4' height='6' fill='%23f0762a'/></svg>" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    :root { --bg: #05070d; --card: rgba(12, 14, 22, 0.85); --border: rgba(240, 118, 42, 0.25); --accent: #f0762a; --text: #e8e6e1; }
-    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
-    .card { background: var(--card); backdrop-filter: blur(16px); border: 1px solid var(--border); }
-    .accent { color: var(--accent); }
-    .btn { background: var(--accent); color: #05070d; font-weight: 600; }
+    body { background: #05070d; color: #e8e6e1; font-family: system-ui, -apple-system, sans-serif; }
+    .card { background: #0c0e16; border: 1px solid rgba(255,255,255,0.06); }
+    .accent { color: #f0762a; }
+    .btn { background: #f0762a; color: #05070d; font-weight: 600; }
     .btn:hover { background: #ff8a3d; }
-    .field { background: rgba(20, 24, 36, 0.6); border: 1px solid rgba(240, 118, 42, 0.2); }
-    .input { background: transparent; outline: none; }
-    select.input { background: transparent; }
-    .exit-btn { color: #f87171; border: 1px solid rgba(248,113,113,0.4); }
+    .pill { background: #1a1d28; border: 1px solid rgba(255,255,255,0.08); }
+    .tab-active { background: #2a2018; color: #f0762a; }
+    .input { background: #141824; border: 1px solid rgba(255,255,255,0.06); }
     .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: #1c3d32; padding: 0.75rem 1.25rem; border-radius: 0.75rem; font-size: 0.875rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 50; }
     .toast.show { opacity: 1; }
   </style>
 </head>
 <body class="min-h-screen antialiased">
-  <div class="max-w-md mx-auto px-4 py-6">
-    <header class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-2">
-        <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true">
-          <circle cx="32" cy="32" r="28" fill="none" stroke="#f0762a" stroke-width="3"/>
-          <path d="M46 18 L32 18 A14 14 0 0 0 32 46 L46 46" fill="none" stroke="#f0762a" stroke-width="5" stroke-linecap="round"/>
-          <rect x="28" y="12" width="4" height="6" fill="#f0762a"/>
-          <rect x="36" y="12" width="4" height="6" fill="#f0762a"/>
-          <rect x="28" y="46" width="4" height="6" fill="#f0762a"/>
-          <rect x="36" y="46" width="4" height="6" fill="#f0762a"/>
-        </svg>
-        <span class="text-lg font-semibold">ShieldLend</span>
-      </div>
-      <div class="flex gap-3 text-xs">
-        <a href="https://cypheranon-dev.github.io/Maskwallet/" class="text-gray-500 hover:text-white">Wallet</a>
-        <a href="https://cypheranon-dev.github.io/Maskswap/" class="text-gray-500 hover:text-white">Swap</a>
-      </div>
-    </header>
-
-    <div class="card rounded-2xl p-4 mb-4">
-      <div class="text-xs text-gray-500 mb-2">Prices</div>
-      <div id="price-list" class="grid grid-cols-4 gap-2 text-center text-xs"></div>
+  <div class="max-w-md mx-auto min-h-screen flex flex-col p-4">
+    <div class="flex justify-between items-center mb-6">
+      <span class="text-sm text-gray-500">Lend & Borrow</span>
+      <a href="https://cypheranon-dev.github.io/Maskwallet/" class="text-xs text-gray-500">Wallet</a>
     </div>
 
-    <div class="card rounded-2xl p-4 mb-4">
-      <div class="text-xs text-gray-500 mb-2">Balances</div>
-      <div class="grid grid-cols-4 gap-2 text-center text-sm">
-        <div><div class="text-gray-500 text-xs">ETH</div><div id="bal-eth" class="accent">2.50</div></div>
-        <div><div class="text-gray-500 text-xs">BTC</div><div id="bal-btc" class="accent">0.05</div></div>
-        <div><div class="text-gray-500 text-xs">SOL</div><div id="bal-sol" class="accent">25</div></div>
-        <div><div class="text-gray-500 text-xs">CYP</div><div id="bal-cyp" class="accent">1000</div></div>
-      </div>
-    </div>
+    <div class="card rounded-2xl p-5 flex-1 flex flex-col">
+      <div class="text-lg font-semibold mb-4">Lend & Borrow</div>
 
-    <div class="card rounded-2xl p-5 mb-4">
-      <div class="flex justify-between items-center mb-3">
-        <span class="text-sm font-medium">Supply</span>
-        <span class="text-xs text-gray-500">0.02% / hour</span>
+      <div class="flex gap-2 mb-4">
+        <button id="tab-supply" class="flex-1 py-2.5 rounded-xl text-sm font-medium tab-active">Supply</button>
+        <button id="tab-borrow" class="flex-1 py-2.5 rounded-xl text-sm text-gray-400 pill">Borrow</button>
       </div>
-      <div class="field rounded-xl p-4 mb-3">
+
+      <div class="pill rounded-xl p-4 mb-6">
+        <div class="grid grid-cols-3 gap-2 text-center mb-3">
+          <div>
+            <div class="text-xs text-gray-500">Net APY</div>
+            <div class="text-xl accent font-semibold">6.8%</div>
+          </div>
+          <div>
+            <div class="text-xs text-gray-500">Supplied</div>
+            <div class="text-sm" id="stat-supplied">$9,120</div>
+          </div>
+          <div>
+            <div class="text-xs text-gray-500">Borrowed</div>
+            <div class="text-sm" id="stat-borrowed">$2,040</div>
+          </div>
+        </div>
         <div class="flex justify-between text-xs text-gray-500 mb-1">
-          <span>Asset</span>
-          <span id="lend-balance"></span>
+          <span>Health factor</span>
+          <span class="accent">2.14</span>
         </div>
-        <div class="flex items-center gap-2">
-          <select id="lend-asset" class="input font-medium">
-            <option value="ETH">ETH</option>
-            <option value="BTC">BTC</option>
-            <option value="SOL">SOL</option>
-          </select>
-          <input id="lend-amt" type="number" step="any" placeholder="0" class="input flex-1 text-right text-lg" />
+        <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-orange-600 to-orange-400" style="width: 72%"></div>
         </div>
       </div>
-      <div class="flex justify-between text-xs text-gray-500 mb-3">
-        <span>Yield</span>
-        <span id="lend-yield">0</span>
-      </div>
-      <button id="lend-btn" class="btn w-full py-3 rounded-xl">Supply</button>
-    </div>
 
-    <div class="card rounded-2xl p-5 mb-4">
-      <div class="flex justify-between items-center mb-3">
-        <span class="text-sm font-medium">Borrow CYP</span>
-        <span class="text-xs text-gray-500">0.015% rebate</span>
-      </div>
-      <div class="field rounded-xl p-4 mb-2">
-        <div class="flex justify-between text-xs text-gray-500 mb-1">
-          <span>Collateral</span>
-          <span id="borrow-collat-bal"></span>
+      <div class="text-xs text-gray-500 mb-3">Markets</div>
+      <div class="space-y-3 mb-6" id="markets">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs">C</div>
+            <div>
+              <div class="text-sm font-medium">CYPHER</div>
+              <div class="text-xs text-gray-500">Supply APY <span class="accent">4.2%</span> · Borrow APY <span class="accent">7.1%</span> · Util. 61%</div>
+            </div>
+          </div>
+          <button class="supply-btn pill text-xs px-3 py-1.5 rounded-lg accent" data-asset="CYP">Supply</button>
         </div>
-        <div class="flex items-center gap-2">
-          <select id="borrow-collat" class="input font-medium">
-            <option value="ETH">ETH</option>
-            <option value="BTC">BTC</option>
-            <option value="SOL">SOL</option>
-          </select>
-          <input id="borrow-collat-amt" type="number" step="any" placeholder="0" class="input flex-1 text-right text-lg" />
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs">B</div>
+            <div>
+              <div class="text-sm font-medium">cBTC</div>
+              <div class="text-xs text-gray-500">Supply APY <span class="accent">1.8%</span> · Borrow APY <span class="accent">3.4%</span> · Util. 29%</div>
+            </div>
+          </div>
+          <button class="supply-btn pill text-xs px-3 py-1.5 rounded-lg accent" data-asset="BTC">Supply</button>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs">E</div>
+            <div>
+              <div class="text-sm font-medium">cETH</div>
+              <div class="text-xs text-gray-500">Supply APY <span class="accent">3.0%</span> · Borrow APY <span class="accent">5.6%</span> · Util. 44%</div>
+            </div>
+          </div>
+          <button class="supply-btn pill text-xs px-3 py-1.5 rounded-lg accent" data-asset="ETH">Supply</button>
         </div>
       </div>
-      <div class="field rounded-xl p-4 mb-3">
-        <div class="flex justify-between text-xs text-gray-500 mb-1">
-          <span>CYP</span>
-          <span>$0.25</span>
-        </div>
-        <div class="text-right text-lg" id="borrow-cyp">0</div>
-      </div>
-      <button id="borrow-btn" class="btn w-full py-3 rounded-xl">Borrow</button>
-    </div>
 
-    <div class="card rounded-2xl p-5 mb-4">
-      <div class="flex justify-between items-center mb-3">
-        <span class="text-sm font-medium">Stake CYP</span>
-        <span class="text-xs text-gray-500">0.015% / hour</span>
-      </div>
-      <div class="field rounded-xl p-4 mb-3">
-        <div class="flex justify-between text-xs text-gray-500 mb-1">
-          <span>Amount</span>
-          <span id="stake-bal"></span>
+      <!-- Action panel -->
+      <div id="action-panel" class="hidden pill rounded-xl p-4 mb-4">
+        <div class="flex justify-between text-xs text-gray-500 mb-2">
+          <span id="action-label">Supply</span>
+          <span id="action-bal"></span>
         </div>
-        <input id="stake-amt" type="number" step="1" placeholder="0" class="input w-full text-right text-lg" />
+        <input id="action-amt" type="number" step="any" placeholder="0.00" class="input w-full rounded-lg px-3 py-2 text-lg mb-3" />
+        <button id="action-confirm" class="btn w-full py-2.5 rounded-lg text-sm">Confirm</button>
       </div>
-      <div class="flex justify-between text-xs text-gray-500 mb-3">
-        <span>Yield</span>
-        <span id="stake-yield">0 CYP/hr</span>
-      </div>
-      <button id="stake-btn" class="btn w-full py-3 rounded-xl">Stake</button>
-    </div>
 
-    <div class="card rounded-2xl p-5">
-      <div class="text-sm font-medium mb-3">Positions</div>
-      <div id="positions" class="text-xs text-gray-500 text-center py-4">None</div>
+      <div class="text-xs text-gray-500 mb-2">Your positions</div>
+      <div id="positions" class="text-xs text-gray-500 text-center py-3">None</div>
+
+      <p class="text-[10px] text-gray-600 mt-auto pt-4">Positions are proven to lenders via range proofs — balances stay hidden from other users.</p>
     </div>
   </div>
   <div id="toast" class="toast"></div>
@@ -145,116 +118,90 @@
       setTimeout(() => t.classList.remove('show'), 2200);
     }
 
-    let prices = { ETH: 2500, BTC: 65000, SOL: 150, CYP: 0.25 };
-    const balances = { ETH: 2.5, BTC: 0.05, SOL: 25, CYP: 1000 };
+    let mode = 'supply';
+    let selectedAsset = 'CYP';
+    const balances = { ETH: 1.228, BTC: 0.0412, SOL: 25, CYP: 8240.12 };
     const positions = [];
-    const cgIds = { ETH: 'ethereum', BTC: 'bitcoin', SOL: 'solana' };
-
-    function renderPrices() {
-      document.getElementById('price-list').innerHTML = Object.entries(prices).map(([k, v]) =>
-        `<div><div class="text-gray-500">${k}</div><div class="accent">$${Number(v).toLocaleString(undefined,{maximumFractionDigits:k==='CYP'?2:0})}</div></div>`
-      ).join('');
-    }
+    let prices = { ETH: 2500, BTC: 65000, SOL: 150, CYP: 0.25 };
 
     async function fetchPrices() {
       try {
-        const ids = Object.values(cgIds).join(',');
-        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
-        if (!res.ok) throw 0;
+        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum,bitcoin,solana&vs_currencies=usd');
+        if (!res.ok) return;
         const data = await res.json();
         if (data.ethereum?.usd) prices.ETH = data.ethereum.usd;
         if (data.bitcoin?.usd) prices.BTC = data.bitcoin.usd;
         if (data.solana?.usd) prices.SOL = data.solana.usd;
       } catch {}
-      renderPrices();
     }
 
-    function updateBals() {
-      document.getElementById('bal-eth').textContent = balances.ETH.toFixed(4);
-      document.getElementById('bal-btc').textContent = balances.BTC.toFixed(4);
-      document.getElementById('bal-sol').textContent = balances.SOL.toFixed(2);
-      document.getElementById('bal-cyp').textContent = Math.floor(balances.CYP);
-    }
-    function updateLend() {
-      const asset = document.getElementById('lend-asset').value;
-      const amt = parseFloat(document.getElementById('lend-amt').value) || 0;
-      document.getElementById('lend-balance').textContent = balances[asset].toFixed(4);
-      document.getElementById('lend-yield').textContent = (amt * 0.0002).toFixed(6) + ' ' + asset + '/hr';
-    }
-    function updateBorrow() {
-      const collat = document.getElementById('borrow-collat').value;
-      const amt = parseFloat(document.getElementById('borrow-collat-amt').value) || 0;
-      document.getElementById('borrow-collat-bal').textContent = balances[collat].toFixed(4);
-      document.getElementById('borrow-cyp').textContent = (amt * prices[collat] / prices.CYP).toFixed(2);
-    }
-    function updateStake() {
-      const amt = parseFloat(document.getElementById('stake-amt').value) || 0;
-      document.getElementById('stake-bal').textContent = Math.floor(balances.CYP);
-      document.getElementById('stake-yield').textContent = (amt * 0.00015).toFixed(4) + ' CYP/hr';
+    function openAction(asset) {
+      selectedAsset = asset;
+      document.getElementById('action-panel').classList.remove('hidden');
+      document.getElementById('action-label').textContent = mode === 'supply' ? `Supply ${asset}` : `Borrow against ${asset}`;
+      document.getElementById('action-bal').textContent = `Bal: ${balances[asset].toFixed(4)}`;
+      document.getElementById('action-amt').value = '';
     }
 
-    document.getElementById('lend-asset').onchange = updateLend;
-    document.getElementById('lend-amt').oninput = updateLend;
-    document.getElementById('borrow-collat').onchange = updateBorrow;
-    document.getElementById('borrow-collat-amt').oninput = updateBorrow;
-    document.getElementById('stake-amt').oninput = updateStake;
+    document.querySelectorAll('.supply-btn').forEach(b => {
+      b.onclick = () => openAction(b.dataset.asset);
+    });
 
-    document.getElementById('lend-btn').onclick = () => {
-      const asset = document.getElementById('lend-asset').value;
-      const amt = parseFloat(document.getElementById('lend-amt').value);
-      if (!amt || amt <= 0 || balances[asset] < amt) return toast('Invalid amount');
-      balances[asset] -= amt;
-      positions.push({ type: 'lend', asset, amt, rate: '0.02%/hr' });
-      renderPositions(); updateLend(); updateBals();
-      toast('Supplied');
+    document.getElementById('tab-supply').onclick = function() {
+      mode = 'supply';
+      this.className = 'flex-1 py-2.5 rounded-xl text-sm font-medium tab-active';
+      document.getElementById('tab-borrow').className = 'flex-1 py-2.5 rounded-xl text-sm text-gray-400 pill';
     };
-    document.getElementById('borrow-btn').onclick = () => {
-      const collat = document.getElementById('borrow-collat').value;
-      const amt = parseFloat(document.getElementById('borrow-collat-amt').value);
-      if (!amt || amt <= 0 || balances[collat] < amt) return toast('Invalid collateral');
-      const cyp = parseFloat(document.getElementById('borrow-cyp').textContent);
-      balances[collat] -= amt;
-      balances.CYP += cyp;
-      positions.push({ type: 'borrow', collat, amt, cyp, rate: '0.015%' });
-      renderPositions(); updateBorrow(); updateBals();
-      toast('Borrowed');
+    document.getElementById('tab-borrow').onclick = function() {
+      mode = 'borrow';
+      this.className = 'flex-1 py-2.5 rounded-xl text-sm font-medium tab-active';
+      document.getElementById('tab-supply').className = 'flex-1 py-2.5 rounded-xl text-sm text-gray-400 pill';
     };
-    document.getElementById('stake-btn').onclick = () => {
-      const amt = parseFloat(document.getElementById('stake-amt').value);
-      if (!amt || amt <= 0 || balances.CYP < amt) return toast('Invalid amount');
-      balances.CYP -= amt;
-      positions.push({ type: 'stake', amt, rate: '0.015%/hr' });
-      renderPositions(); updateStake(); updateBals();
-      toast('Staked');
+
+    document.getElementById('action-confirm').onclick = () => {
+      const amt = parseFloat(document.getElementById('action-amt').value);
+      if (!amt || amt <= 0) return toast('Enter amount');
+      if (mode === 'supply') {
+        if (balances[selectedAsset] < amt) return toast('Insufficient');
+        balances[selectedAsset] -= amt;
+        positions.push({ type: 'lend', asset: selectedAsset, amt });
+        toast('Supplied');
+      } else {
+        if (balances[selectedAsset] < amt) return toast('Insufficient collateral');
+        const cyp = (amt * prices[selectedAsset]) / prices.CYP;
+        balances[selectedAsset] -= amt;
+        balances.CYP += cyp;
+        positions.push({ type: 'borrow', asset: selectedAsset, amt, cyp });
+        toast('Borrowed');
+      }
+      renderPositions();
+      document.getElementById('action-panel').classList.add('hidden');
     };
 
     function exitPosition(i) {
       const p = positions[i];
       if (!p) return;
       if (p.type === 'lend') balances[p.asset] += p.amt;
-      else if (p.type === 'borrow') { balances[p.collat] += p.amt; balances.CYP -= p.cyp; }
-      else balances.CYP += p.amt;
+      else { balances[p.asset] += p.amt; balances.CYP -= p.cyp; }
       positions.splice(i, 1);
-      renderPositions(); updateBals(); updateLend(); updateBorrow(); updateStake();
+      renderPositions();
       toast('Exited');
     }
     window.exitPosition = exitPosition;
 
     function renderPositions() {
       const el = document.getElementById('positions');
-      if (!positions.length) { el.className = 'text-xs text-gray-500 text-center py-4'; el.innerHTML = 'None'; return; }
-      el.className = 'space-y-1';
+      if (!positions.length) { el.innerHTML = 'None'; return; }
       el.innerHTML = positions.map((p, i) => {
-        const label = p.type === 'lend' ? `${p.amt} ${p.asset}` : p.type === 'borrow' ? `${p.cyp.toFixed(2)} CYP` : `${p.amt} CYP`;
-        return `<div class="flex justify-between items-center py-2 border-b border-gray-800 text-sm">
-          <span>${label} <span class="text-gray-500 text-xs">${p.rate}</span></span>
-          <button onclick="exitPosition(${i})" class="exit-btn text-xs px-2 py-1 rounded">Exit</button>
+        const label = p.type === 'lend' ? `Supplied ${p.amt} ${p.asset}` : `Borrowed ${p.cyp.toFixed(0)} CYP`;
+        return `<div class="flex justify-between items-center py-1.5 border-b border-gray-800 text-sm">
+          <span>${label}</span>
+          <button onclick="exitPosition(${i})" class="text-red-400 text-xs">Exit</button>
         </div>`;
       }).join('');
     }
 
     fetchPrices();
-    updateLend(); updateBorrow(); updateStake(); updateBals();
   </script>
 </body>
 </html>
